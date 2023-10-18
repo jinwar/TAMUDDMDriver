@@ -4,6 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 from scipy import signal
+import subprocess
+import time
 
 
 class DDM:
@@ -273,3 +275,24 @@ def find_peaks(data):
             skull.append([k,df['loc'][k][j]])
     
     return skull
+
+def run_model():
+
+    # Define the path to your .exe file
+    exe_path = './Fiber_Strain_rate_Engine.exe'
+
+    # Start the process
+    process = subprocess.Popen(exe_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+
+    # Wait for 3 seconds
+    time.sleep(3)
+
+    # Check if the process is still running
+    if process.poll() is None:
+        # If the process is still running after 3 seconds, terminate it
+        process.terminate()
+        print("Process terminated")
+    else:
+        print("Process completed")
+
