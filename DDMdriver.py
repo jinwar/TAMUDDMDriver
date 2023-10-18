@@ -276,13 +276,15 @@ def find_peaks(data):
     
     return skull
 
-def run_model():
+def run_model_linux():
 
     # Define the path to your .exe file
-    exe_path = './Fiber_Strain_rate_Engine.exe'
+    # exe_path = 'echo input.am | ./Fiber_Strain_rate_Engine.exe'
+    exe_path = './Fiber_Strain_rate_Engine_10.18.exe'
 
     # Start the process
     process = subprocess.Popen(exe_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # stdout, stderr = process.communicate("input.am\n")
 
 
     # Wait for 3 seconds
