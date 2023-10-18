@@ -3,6 +3,7 @@ import re
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
+from scipy import signal
 
 
 class DDM:
@@ -36,8 +37,8 @@ class DDM:
         self.Reservoir_Domain_X_Maximum = 150
         self.Reservoir_Domain_Y_Minimum = -150
         self.Reservoir_Domain_Y_Maximum = 150
-        self.Reservoir_Domain_Z_Minimum = 1900
-        self.Reservoir_Domain_Z_Maximum = 2100
+        self.Reservoir_Domain_Z_Minimum = 1800
+        self.Reservoir_Domain_Z_Maximum = 2200
 
         # MONIT section
         self.well_path_X_begin = -150
@@ -67,6 +68,30 @@ class DDM:
 
             current_width = np.sqrt((current_length**2-elem_x**2)*w_ratio**2)
             current_height = np.sqrt((current_length**2-elem_x**2)*h_ratio**2)
+
+            width_all.append(current_width)  
+            height_all.append(current_height)
+            xgrid_all.append(elem_x)
+        
+        self.xgrid_all = xgrid_all
+        self.width_all = width_all
+        self.height_all = height_all
+
+    def uniform_fracture(self,height, width):
+        self.injection_time = _generate_numbers_string(self.start_time, self.end_time, self.number_of_time_steps)
+
+        self.elements = _generate_elements(self.number_of_time_steps, self.number_of_fracture_branch, self.frac_element_half_length)
+
+        width_all = []
+        height_all = []
+        xgrid_all = []
+
+        for j in range(self.number_of_time_steps):
+            current_length = (j+1)*self.frac_element_half_length*2
+            elem_x = np.arange(j+1)*self.frac_element_half_length*2 + self.frac_element_half_length
+
+            current_width = np.ones_like(elem_x)*width
+            current_height = np.ones_like(elem_x)*height
 
             width_all.append(current_width)  
             height_all.append(current_height)
@@ -188,7 +213,7 @@ def _generate_elements(number_of_time_steps, number_of_fracture_branch, half_len
 
     entries = []
     for branch in range(1, number_of_fracture_branch + 1):
-        y_mid = 0.5
+        y_mid = half_length
         if branch % 2 == 1:  # Odd branch
             radian_angle = radian_angle_positive
         else:  # Even branch
@@ -232,3 +257,19 @@ def read_output(filename):
 def check_model_run(input_file,output_file):
     if os.path.getmtime(input_file) > os.path.getmtime(output_file):
         raise Exception("input file is newer than result file, run exe first!")
+
+def find_peaks(data):
+    peaks = []
+    skull = []
+    for i in range (data.shape[0]):
+        peak, _ = signal.find_peaks(data[i,:])
+        peaks.append(peak)
+        
+    df = pd.DataFrame()
+    df['loc'] = peaks
+
+    for k in range(data.shape[0]):
+        for j in range(df['loc'][k].shape[0]):
+            skull.append([k,df['loc'][k][j]])
+    
+    return skull
