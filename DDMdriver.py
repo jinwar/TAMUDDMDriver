@@ -6,7 +6,7 @@ import os
 from scipy import signal
 import subprocess
 import time
-
+import psutil
 
 class DDM:
 
@@ -276,25 +276,80 @@ def find_peaks(data):
     
     return skull
 
-def run_model_linux():
+def run_model_process():
+    # Define the command and arguments
+#    command = 'Fiber_Strain_rate_Engine.exe'
+    command = '3D_DDM_slantedwells_04_15_22.exe'
+    input_data = 'input.am'
 
-    # Define the path to your .exe file
-    # exe_path = 'echo input.am | ./Fiber_Strain_rate_Engine.exe'
-    exe_path = './Fiber_Strain_rate_Engine_10.18.exe'
+    # Function to terminate a process and its children
+    def terminate_process(proc):
+        try:
+            # Get the list of child processes
+            child_procs = proc.children(recursive=True)
 
-    # Start the process
-    process = subprocess.Popen(exe_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    # stdout, stderr = process.communicate("input.am\n")
+            # First, try to terminate the process
+            proc.terminate()
 
+            # Give it some time to terminate gracefully
+            gone, alive = psutil.wait_procs([proc], timeout=3)
 
-    # Wait for 3 seconds
-    time.sleep(3)
+            # If the process is still alive, then kill it forcefully
+            if alive:
+                for p in alive:
+                    p.kill()
 
-    # Check if the process is still running
-    if process.poll() is None:
-        # If the process is still running after 3 seconds, terminate it
-        process.terminate()
-        print("Process terminated")
-    else:
-        print("Process completed")
+            # Now, handle the child processes
+            gone, alive = psutil.wait_procs(child_procs, timeout=3)
+            if alive:
+                for p in alive:
+                    p.kill()
+
+            return True
+        except psutil.NoSuchProcess:
+            return False  # The process does not exist
+        except psutil.AccessDenied:
+            return False  # Usually raised when requiring administrative privileges
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            return False
+
+    # Record the start time
+    start_time = time.time()
+
+    # Start the process with suppressed output
+    try:
+        process = subprocess.Popen(
+            f'echo {input_data} | {command}',
+            shell=True,
+            stdout=subprocess.DEVNULL,  # Suppress standard output
+            stderr=subprocess.DEVNULL,  # Suppress standard error (optional, remove if error info is needed)
+        )
+
+        # Wait for a certain amount of time or until process finishes
+        for _ in range(3):  # for example, check for 3 seconds
+            if process.poll() is not None:
+                break
+            time.sleep(1)
+
+        # If the process is still running, we need to terminate it and its children
+        if process.poll() is None:
+            proc = psutil.Process(process.pid)  # Get a psutil.Process instance for more features
+            if terminate_process(proc):
+                print("Process and its children have been terminated.")
+            else:
+                print("Failed to terminate the process (it may not exist, or require higher privileges).")
+        else:
+            print("Process had already ended.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+    # Record the end time
+    end_time = time.time()
+
+    # Calculate and print the total execution time
+    execution_time = end_time - start_time
+    print(f"Total execution time: {execution_time:.2f} seconds")
+
 
