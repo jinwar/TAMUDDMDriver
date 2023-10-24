@@ -78,6 +78,42 @@ class DDM:
         self.xgrid_all = xgrid_all
         self.width_all = width_all
         self.height_all = height_all
+        
+    def layer_fracture(self,initial_height, initial_width, h_ratio,w_ratio):
+        self.injection_time = _generate_numbers_string(self.start_time, self.end_time, self.number_of_time_steps)
+        self.elements = _generate_elements(self.number_of_time_steps, self.number_of_fracture_branch, self.frac_element_half_length)
+        
+        width_all = []
+        height_all = []
+        xgrid_all = []
+        
+        for j in range(self.number_of_time_steps):
+            current_length = (j+1)*self.frac_element_half_length*2
+            elem_x = np.arange(j+1)*self.frac_element_half_length*2 + self.frac_element_half_length
+            
+            if j==0 or j == 1:
+                current_width = np.ones_like(elem_x) * initial_width / w_ratio
+                current_height = np.ones_like(elem_x) * initial_height / h_ratio
+            else:
+                w = np.linspace(initial_width,0,len(elem_x))
+                width = np.floor(w)
+                width = width + 1
+                current_width[0] = current_width[1]
+                current_width = width * len(elem_x) / w_ratio
+                
+                h = np.linspace(initial_height,0,len(elem_x))
+                height = np.floor(h)
+                height = height + 1
+                current_height[0] = current_height[1]
+                current_height = height * len(elem_x) / h_ratio
+                
+            width_all.append(current_width)
+            height_all.append(current_height)
+            xgrid_all.append(elem_x)
+            
+        self.xgrid_all = xgrid_all
+        self.width_all = width_all    
+        self.height_all = height_all
 
     def uniform_fracture(self,height, width):
         self.injection_time = _generate_numbers_string(self.start_time, self.end_time, self.number_of_time_steps)
