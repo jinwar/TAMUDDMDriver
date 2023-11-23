@@ -1,0 +1,10 @@
+{
+    "github.copilot.chat.localeOverride": "en",
+    "github.copilot.enable": {
+        "python": "True"
+    },
+    "github.copilot.advanced": {
+
+    },
+    "workbench.colorTheme": "Default Dark Modern"
+}

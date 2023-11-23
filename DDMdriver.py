@@ -72,11 +72,16 @@ class DDM:
             a = 1e-16
         pxs = np.array([xmin,xmax,(ymin-b)/a,(ymax-b)/a])
         pys = np.array([xmin*a+b, xmax*a+b,ymin,ymax])
-        dists = ((pxs-x0)**2+(pys-y0)**2)**0.5
-        ind = np.argsort(dists)
 
-        wellx = pxs[ind[:2]]
-        welly = pys[ind[:2]]
+        def in_range(x,y):
+            if x>=xmin and x<=xmax and y>=ymin and y<=ymax:
+                return True
+            else:
+                return False
+        ind = [in_range(x,y) for x,y in zip(pxs,pys)]
+        wellx=pxs[ind]
+        welly=pys[ind]
+
         ind = np.argsort(wellx)
         wellx = wellx[ind]
         welly = welly[ind]
@@ -330,6 +335,34 @@ def read_output(filename, dataset='Strain'):
 def check_model_run(input_file='./input.am',output_file='./Outputs/MonitorWell_1.dat'):
     if os.path.getmtime(input_file) > os.path.getmtime(output_file):
         raise Exception("input file is newer than result file, run exe first!")
+
+def find_peaks_Data2D(DASdata):
+    data = DASdata.data
+    peaks = []
+    skull = []
+    for i in range (data.shape[1]):
+        peak, _ = signal.find_peaks(data[:,i])
+        peaks.append(peak)
+        
+    df = pd.DataFrame()
+    df['loc'] = peaks
+
+    for k in range(data.shape[1]):
+        for j in range(df['loc'][k].shape[0]):
+            skull.append([k,df['loc'][k][j]])
+    
+    DASdata.peaks_ind = skull
+    
+    return skull
+
+def plot_peaks_Data2D(DASdata,style='kx'):
+    x = []
+    y = []
+    for p in DASdata.peaks_ind:
+        x.append(DASdata.taxis[p[0]])
+        y.append(DASdata.daxis[p[1]])
+    plt.plot(x,y,style)
+
 
 def find_peaks(data):
     peaks = []
