@@ -34,25 +34,29 @@ class DDM:
         self.Poisson_Ratio = 0.26
         
         # RESVR section
-        self.Reservoir_Center_Depth = 2000
-        self.Reservoir_Domain_X_Minimum = -150
-        self.Reservoir_Domain_X_Maximum = 150
-        self.Reservoir_Domain_Y_Minimum = -150
-        self.Reservoir_Domain_Y_Maximum = 150
-        self.Reservoir_Domain_Z_Minimum = 1800
-        self.Reservoir_Domain_Z_Maximum = 2200
+        self.Reservoir_Center_Depth = 0
+        self.Reservoir_Domain_X_Minimum = -200
+        self.Reservoir_Domain_X_Maximum = 200
+        self.Reservoir_Domain_Y_Minimum = -200
+        self.Reservoir_Domain_Y_Maximum = 200
+        self.Reservoir_Domain_Z_Minimum = -200
+        self.Reservoir_Domain_Z_Maximum = 200
 
         # MONIT section
-        self.well_path_X_begin = -150
-        self.well_path_X_end = 150
+        self.well_path_X_begin = -200
+        self.well_path_X_end = 200
         self.well_path_Y_begin = 25
         self.well_path_Y_end = 25
-        self.well_path_Z_begin = 2000
-        self.well_path_Z_end = 2000
+        self.well_path_Z_begin = 0
+        self.well_path_Z_end = 0
         self.well_path_measured_depth_begin = 0
         self.gauge_length = 5.0
 
         self.output_at_timesteps = 35
+
+        # data IO
+        self.default_input_file = './input.am'
+        self.default_output_file = './Outputs/MonitorWell_1.dat'
 
     
     def ellipse_fracture(self,h_ratio, w_ratio):
@@ -103,22 +107,43 @@ class DDM:
         self.width_all = width_all
         self.height_all = height_all
     
+    def run(self):
+        self.output()
+        run_model_process()
+    
+    def check_model_run(self):
+        check_model_run()
+    
+    def get_result(self,dataset='Strain'):
+        return read_output(self.default_outputfile,dataset=dataset)
+    
     def draw_fracture(self,time_step_skip=10):
         plt.subplot(1,2,1)
         for i in range(0,self.number_of_time_steps,time_step_skip):
-            plt.plot(self.xgrid_all[i],self.height_all[i])
+            x = self.xgrid_all[i]
+            x = np.concatenate([x,[x[-1]]])
+            y = self.height_all[i]
+            y = np.concatenate(([y,[0]]))
+            plt.plot(x,y)
         plt.xlabel('y')
         plt.ylabel('Height')
 
         plt.subplot(1,2,2)
         for i in range(0,self.number_of_time_steps,time_step_skip):
-            plt.plot(self.xgrid_all[i],self.width_all[i])
+            x = self.xgrid_all[i]
+            x = np.concatenate((x,[x[-1]]))
+            y = self.width_all[i]
+            y = np.concatenate(([y,[0]]))
+            plt.plot(x,y,label=f'Time step: {i}')
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         plt.xlabel('y')
         plt.ylabel('Width')
 
 
     
-    def output(self,filename):
+    def output(self,filename=None):
+        if filename is None:
+            filename = self.default_input_file
 
         with open(filename, 'w') as file:
             # Writing the MEMORY section
@@ -229,7 +254,18 @@ def _generate_elements(number_of_time_steps, number_of_fracture_branch, half_len
     return entries
 
 
-def read_output(filename):
+def read_output(filename, dataset='Strain'):
+    """
+    This function reads the output from a specified file.
+
+    Parameters:
+    filename (str): The name of the file to read.
+    dataset (str, optional): The type of data to extract from the file. 
+                             Options are  'U', 'Strain', 'Strain_Rate'
+                             Default is 'Strain'.
+
+    Returns: Time, Depth, data
+    """
     # Read the content of the file
     with open(filename, 'r') as file:
         content = file.read()
@@ -251,12 +287,12 @@ def read_output(filename):
 
     Time = d['Time'].unique()
     Depth = d['Depth'].unique()
-    s = np.asarray(d['Strain'])
+    s = np.asarray(d[dataset])
     data = s.reshape(len(Time)+1,len(Depth))
 
     return Time, Depth, data
 
-def check_model_run(input_file,output_file):
+def check_model_run(input_file='./input.am',output_file='./Outputs/MonitorWell_1.dat'):
     if os.path.getmtime(input_file) > os.path.getmtime(output_file):
         raise Exception("input file is newer than result file, run exe first!")
 
