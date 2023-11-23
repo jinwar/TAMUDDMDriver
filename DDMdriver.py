@@ -7,6 +7,7 @@ from scipy import signal
 import subprocess
 import time
 import psutil
+from JIN_pylib import Data2D_XT
 
 class DDM:
 
@@ -110,23 +111,29 @@ class DDM:
     def run(self):
         self.output()
         run_model_process()
+        check_model_run()
     
     def check_model_run(self):
         check_model_run()
     
     def get_result(self,dataset='Strain'):
-        return read_output(self.default_outputfile,dataset=dataset)
+        t,d,data = read_output(self.default_output_file,dataset=dataset)
+        output_data = Data2D_XT.Data2D()
+        output_data.taxis = t*60
+        output_data.daxis = d
+        output_data.data = data.T
+        return output_data
     
     def draw_fracture(self,time_step_skip=10):
         plt.subplot(1,2,1)
         for i in range(0,self.number_of_time_steps,time_step_skip):
             x = self.xgrid_all[i]
             x = np.concatenate([x,[x[-1]]])
-            y = self.height_all[i]
+            y = self.height_all[i]/2
             y = np.concatenate(([y,[0]]))
             plt.plot(x,y)
         plt.xlabel('y')
-        plt.ylabel('Height')
+        plt.ylabel('Half Height')
 
         plt.subplot(1,2,2)
         for i in range(0,self.number_of_time_steps,time_step_skip):
@@ -230,7 +237,7 @@ class DDM:
 
 def _generate_numbers_string(start, end, num_points):
     numbers = np.linspace(start, end, num_points)
-    numbers_str = "   ".join(map(str, numbers))
+    numbers_str = "   ".join(["{:.1f}".format(num) for num in numbers])
     return numbers_str
 
 def _generate_elements(number_of_time_steps, number_of_fracture_branch, half_length):
@@ -289,6 +296,7 @@ def read_output(filename, dataset='Strain'):
     Depth = d['Depth'].unique()
     s = np.asarray(d[dataset])
     data = s.reshape(len(Time)+1,len(Depth))
+    data = data[1:,:] # remove the first row
 
     return Time, Depth, data
 
