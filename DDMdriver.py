@@ -59,6 +59,33 @@ class DDM:
         self.default_input_file = './input.am'
         self.default_output_file = './Outputs/MonitorWell_1.dat'
 
+    def set_slant_well(self, x0,y0,theta):
+        a = np.tan(np.deg2rad(theta))
+        b = y0-a*x0
+        xmin = self.Reservoir_Domain_X_Minimum
+        xmax = self.Reservoir_Domain_X_Maximum
+        ymin = self.Reservoir_Domain_Y_Minimum
+        ymax = self.Reservoir_Domain_Y_Maximum
+
+        # calculate cross-points at boundaries:
+        if a == 0:
+            a = 1e-16
+        pxs = np.array([xmin,xmax,(ymin-b)/a,(ymax-b)/a])
+        pys = np.array([xmin*a+b, xmax*a+b,ymin,ymax])
+        dists = ((pxs-x0)**2+(pys-y0)**2)**0.5
+        ind = np.argsort(dists)
+
+        wellx = pxs[ind[:2]]
+        welly = pys[ind[:2]]
+        ind = np.argsort(wellx)
+        wellx = wellx[ind]
+        welly = welly[ind]
+
+        self.well_path_X_begin = wellx[0]
+        self.well_path_X_end = wellx[1]
+        self.well_path_Y_begin = welly[0]
+        self.well_path_Y_end = welly[1]
+
     
     def ellipse_fracture(self,h_ratio, w_ratio):
         self.injection_time = _generate_numbers_string(self.start_time, self.end_time, self.number_of_time_steps)
