@@ -58,6 +58,14 @@ class DDM:
         # data IO
         self.default_input_file = './input.am'
         self.default_output_file = './Outputs/MonitorWell_1.dat'
+    
+    def set_well_distance(self, distance):
+        self.well_path_Y_begin = distance
+        self.well_path_Y_end = distance
+    
+    def set_well_depth(self, depth):
+        self.well_path_Z_begin = depth
+        self.well_path_Z_end = depth
 
     def set_slant_well(self, x0,y0,theta):
         a = np.tan(np.deg2rad(theta))
@@ -154,7 +162,47 @@ class DDM:
         output_data.taxis = t*60
         output_data.daxis = d
         output_data.data = data.T
+        self.data = output_data
         return output_data
+    
+    def find_peaks(self):
+        find_peaks_Data2D(self.data)
+        return self.data.peaks_ind
+    
+    def plot_peaks(self,style='kx',**kwargs):
+        self.data.plot_waterfall(**kwargs)
+        plot_peaks_Data2D(self.data,style=style)
+    
+    def output_peak_attributes(self):
+        self.find_peaks()
+        frac_hit_index = self.well_path_Y_begin/self.frac_element_half_length/2
+        frac_hit_index = int(frac_hit_index)
+        peak_ind = np.array(self.data.peaks_ind)
+        results = []
+        for i in range(frac_hit_index):
+            ind = peak_ind[:,0]==i
+            peak_locs = self.data.daxis[peak_ind[ind,1]]
+            peak_dist = np.max(peak_locs)-np.min(peak_locs)
+            peak_amp = np.median(self.data.data[peak_ind[ind,1],peak_ind[ind,0]])
+            tip_dist = self.well_path_Y_begin-(2*i+1)*self.frac_element_half_length
+            frac_width = self.width_all[i][-1]
+            frac_height = self.height_all[i][-1]
+            well_depth = self.well_path_Z_begin
+            results.append({'timestep':i,
+                            'peak_dist':peak_dist,
+                            'peak_amp':peak_amp,
+                            'tip_dist':tip_dist,
+                            'frac_width':frac_width,
+                            'frac_height':frac_height,
+                            'frac_elem_half_length':self.frac_element_half_length,
+                            'well_depth':well_depth})
+        results = pd.DataFrame(results)
+        return results
+
+            
+            
+
+            
     
     def draw_fracture(self,time_step_skip=10):
         plt.subplot(1,2,1)
