@@ -182,6 +182,13 @@ class DDM:
         return self.data.peaks_ind
     
     def plot_peaks(self,style='kx',**kwargs):
+        # check self has data field:
+        if not hasattr(self,'data'):
+            self.get_result()
+        # check self.data has peaks_ind field:
+        if not hasattr(self.data,'peaks_ind'):
+            self.find_peaks()
+
         self.data.plot_waterfall(**kwargs)
         plot_peaks_Data2D(self.data,style=style)
     
@@ -199,6 +206,9 @@ class DDM:
         dists = np.sqrt(dx**2+dy**2)
 
         return np.min(dists)
+    
+    def get_peak_attributes(self):
+        return self.output_peak_attributes()
 
     def output_peak_attributes(self):
         self.find_peaks()
@@ -537,3 +547,8 @@ def get_uniform_filename(fracture_half_height,fracture_width,well_depth):
 
 def get_ellipse_filename(fracture_half_height,fracture_width,well_depth):
     return 'results/ellipse_H{}_W{}_WD{}.feather'.format(fracture_half_height,fracture_width,well_depth)
+
+
+test_matrix = {'fracture_half_height':[30,60,90],
+               'fracture_width':[0.001,0.01,0.1],
+               'well_depth':[0,15,30,45,60,75,90,105,120]}
